@@ -1,43 +1,65 @@
 <template>
-    <img
-        src="../../public/img/icons/climate_sample.png"
-        alt=""
-        style="width: 300px; margin: auto"
-    />
+    <img src="../../public/img/icons/climate_sample.png" alt="" style="width: 300px; margin: auto" />
     <div class="weatherChart_group_container">
-        <div
-            class="weatherChart_container"
-            v-for="(l, index) in location"
-            :key="index"
-        >
-            <div class="title_container">
-                <p>
-                    {{ l.station.StationName }}
-                    ｜
-                    {{ l.station.StationName == '玉山' ? '高地氣候' : chartData_Arr[index].datasets[1].data[0] < 18 ? '副熱帶季風氣候' : '熱帶季風氣候' }}
-                </p>
+        <div class="weatherChart_container" v-for="(l, index) in location" :key="index">
+            <div class="climate_type_container">
+                {{ l.station.StationName == '玉山' ? '高地氣候' : l.stationObsStatistics.AirTemperature.monthly[0].Mean <= 18 ? '副熱帶季風氣候' : '熱帶季風氣候' }}
             </div>
-            <div
-                class="chart-container"
-                style="position: relative; width: 310px; height: 350px"
-            >
-                <Bar
-                    v-if="loaded"
-                    class="Chart"
-                    :data="chartData_Arr[index]"
-                    :options="chartOptions"
-                    style="width: 100%; height: 100%"
-                />
+            <div style="display: flex; justify-content: space-around">
+                <p style="font-size: 12px">年均溫 {{ averageTemperature(l.stationObsStatistics.AirTemperature.monthly) }} ℃</p>
+                <p style="font-size: 12px">年降水量 {{ totalPrecipitation(l.stationObsStatistics.Precipitation.monthly) }} mm</p>
+            </div>
+            <div class="title_container">
+                <p>{{ l.station.StationName }}</p>
+            </div>
+            <div class="chart_container">
+                <Bar v-if="loaded" class="Chart" :data="chartData_Arr[index]" :options="chartOptions" style="width: 100%; height: 100%" />
             </div>
         </div>
     </div>
 </template>
 
+<style lang="scss">
+.page {
+    display: flex;
+    flex-direction: column;
+    max-width: 100%;
+
+    .weatherChart_group_container {
+        height: fit-content;
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        justify-content: center;
+
+        .weatherChart_container {
+            background-color: #eff9fe;
+
+            .title_container {
+                display: flex;
+                width: 100%;
+                justify-content: center;
+                align-items: center;
+                gap: 8px;
+
+                p {
+                    font-size: 20px;
+                }
+            }
+            .chart_container{
+                position: relative;
+                width: 310px;
+                height: 350px;
+            }
+        }
+    }
+}
+</style>
+
+
 <script>
 import { Bar } from 'vue-chartjs';
-
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineController, LineElement } from 'chart.js';
-
 ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale, PointElement, LineController, LineElement);
 
 export default {
@@ -51,6 +73,11 @@ export default {
 
         chartOptions: {
             responsive: true,
+            plugins: {
+                legend: {
+                    display: false, // 设置为false移除图例
+                },
+            },
             scales: {
                 bottom: {
                     grid: {
@@ -142,35 +169,16 @@ export default {
             }
             this.loaded = true; // 在數據加載後設置為true
         },
+        totalPrecipitation(monthly) {
+            // 使用 reduce 方法来计算总雨量
+            return monthly.reduce((total, month) => Math.round(total + parseFloat(month.Accumulation)), 0);
+        },
+        averageTemperature(monthly) {
+            let totalTemperature = monthly.reduce((total, month) => total + parseFloat(month.Mean), 0);
+            let average = Math.round((totalTemperature / monthly.length) * 10) / 10;
+            return average.toFixed(1);
+        },
     },
+    computed: {},
 };
 </script>
-
-<style lang="scss">
-.page {
-    display: flex;
-    flex-direction: column;
-    max-width: 100%;
-    .weatherChart_group_container {
-        height: fit-content;
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-        justify-content: center;
-
-        .weatherChart_container {
-            background-color: #eff9fe;
-            .title_container {
-                display: flex;
-                width: 100%;
-                justify-content: center;
-                align-items: center;
-                gap: 8px;
-                p {
-                    font-size: 20px;
-                }
-            }
-        }
-    }
-}
-</style>
